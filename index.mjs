@@ -1,28 +1,26 @@
-// import DataOwner from './src/class/peer/DataOwner.class.mjs';
-// import ShardKeeper from './src/class/peer/ShardKeeper.class.mjs';
-import Farmer from './src/class/peer/Farmer.class.mjs';
+import promptly from 'promptly';
 import AppConfig from './src/constant/AppConfig.constant.mjs';
+import CommandManager from './src/utility/CommandManager.class.mjs';
+import PeerManager from './src/utility/PeerManager.class.mjs';
 
-console.log('\n\nWelcom to DiskFarm~');
+console.log('\n\nWelcome to DiskFarm ~');
 console.log('Simulation Started.');
 
-console.log('\nCreating peers...');
+PeerManager.initPeers(
+  AppConfig.DATA_OWNER.TOTAL_NUM,
+  AppConfig.SHARD_KEEPER.TOTAL_NUM,
+  AppConfig.FARMER.TOTAL_NUM,
+);
 
-// const dataOwners = [];
-// for (let i = 0; i < AppConfig.DATA_OWNER.TOTAL_NUM; i += 1) {
-//   dataOwners.push(new DataOwner());
-//   dataOwners[dataOwners.length - 1].printInfo();
-// }
-
-// const shardKeepers = [];
-// for (let i = 0; i < AppConfig.SHARD_KEEPER.TOTAL_NUM; i += 1) {
-//   shardKeepers.push(new ShardKeeper());
-//   shardKeepers[shardKeepers.length - 1].printInfo();
-// }
-
-const farmers = [];
-for (let i = 0; i < AppConfig.FARMER.TOTAL_NUM; i += 1) {
-  farmers.push(new Farmer());
-  farmers[farmers.length - 1].printInfo();
-}
+(async () => {
+  for (;;) {
+    try {
+      const command = await promptly.prompt('> '); // eslint-disable-line no-await-in-loop
+      CommandManager.parse(command);
+    } catch (error) {
+      console.log(error);
+      process.exit();
+    }
+  }
+})();
 

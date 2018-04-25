@@ -13,6 +13,9 @@ class KBucketList {
   }
 
   appendPeerRecord(bucketId, peerRecord, removeHeadIfFull = true) {
+    if (bucketId === -1) {
+      return;
+    }
     if (this.isBucketFull(bucketId)) {
       if (removeHeadIfFull) {
         this.bucketList[bucketId].shift();
@@ -35,7 +38,9 @@ class KBucketList {
       distance = distance.shiftRight(1);
       bucketId += 1;
     }
-    const position = this.bucketList[bucketId].findIndex(rec => rec.peerId.eq(peerId));
+    const position = bucketId === -1 ?
+      -1 :
+      this.bucketList[bucketId].findIndex(rec => rec.peerId.eq(peerId));
     return { bucketId, position };
   }
 
@@ -47,8 +52,27 @@ class KBucketList {
     return this.bucketList[bucketId].length >= this.size.k;
   }
 
-  getBucketLoad() {
-    return this.bucketList.map(bucket => bucket.length);
+  getBucketContent() {
+    return this.bucketList.map(bucket => bucket.map(record => record.name));
+  }
+
+  findClosestRecords(id) {
+    const { bucketId } = this.findPeerRecord(id);
+    let closestRecords = this.bucketList[bucketId] || [];
+    let tmpBucketId = bucketId - 1;
+    while (closestRecords.length < this.size.k && tmpBucketId >= 0) {
+      closestRecords = closestRecords.concat(this.bucketList[tmpBucketId]);
+      tmpBucketId -= 1;
+    }
+    tmpBucketId = bucketId + 1;
+    while (closestRecords.length < this.size.k && tmpBucketId < this.size.l) {
+      closestRecords = closestRecords.concat(this.bucketList[tmpBucketId]);
+      tmpBucketId += 1;
+    }
+    if (closestRecords.length > this.size.k) {
+      closestRecords = closestRecords.slice(0, this.size.k);
+    }
+    return closestRecords;
   }
 }
 

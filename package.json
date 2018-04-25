@@ -8,7 +8,9 @@
   "dependencies": {
     "bignum": "^0.12.5",
     "colors": "^1.2.1",
-    "probability-distributions": "^0.9.1"
+    "commander": "^2.15.1",
+    "probability-distributions": "^0.9.1",
+    "promptly": "^3.0.3"
   },
   "devDependencies": {
     "eslint": "^4.19.1",

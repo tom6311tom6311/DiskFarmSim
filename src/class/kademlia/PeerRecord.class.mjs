@@ -1,8 +1,9 @@
 import bignum from 'bignum';
 
 class PeerRecord {
-  constructor(peerID = bignum(-1), ip = '', port = -1) {
-    this.peerID = peerID;
+  constructor(name, peerId = bignum(-1), ip = '', port = -1) {
+    this.name = name;
+    this.peerId = peerId;
     this.ip = ip;
     this.port = port;
   }

@@ -4,8 +4,8 @@ import Peer from './Peer.class.mjs';
 import AppConfig from '../../constant/AppConfig.constant.mjs';
 
 class ShardKeeper extends Peer {
-  constructor() {
-    super();
+  constructor(name) {
+    super(name);
     this.shardCapacity = PD.rnorm(
       1,
       AppConfig.SHARD_KEEPER.SHARD_CAPACITY.MEAN,

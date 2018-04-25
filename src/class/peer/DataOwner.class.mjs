@@ -4,8 +4,8 @@ import Peer from './Peer.class.mjs';
 import AppConfig from '../../constant/AppConfig.constant.mjs';
 
 class DataOwner extends Peer {
-  constructor() {
-    super();
+  constructor(name) {
+    super(name);
     this.fileToUploadOccurRate = PD.rnorm(
       1,
       AppConfig.DATA_OWNER.FILE_TO_UPLOAD_OCCUR_RATE.MEAN,
