@@ -26,6 +26,13 @@ class PeerManager {
     for (let i = 0; i < nFarmer; i += 1) {
       const name = `F${i.toString()}`;
       this.farmers[name] = new Farmer(name);
+      if (AppConfig.KADEMLIA.ALLOW_RANDOM_NODE_LOOKUP) {
+        setTimeout(() => {
+          this.farmers[name]
+            .kademliaAgent
+            .startRandomNodeLookup(AppConfig.KADEMLIA.RANDOM_NODE_LOOKUP_AVG_PERIOD);
+        }, 1000);
+      }
     }
     console.log(colors.green('\n### Initialization Finished ###\n'));
   }

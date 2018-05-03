@@ -1,3 +1,4 @@
+import PD from 'probability-distributions';
 import AppConfig from '../../constant/AppConfig.constant.mjs';
 import KBucketList from '../kademlia/KBucketList.class.mjs';
 import KademliaIdGenerator from '../../utility/KademliaIdGenerator.class.mjs';
@@ -15,6 +16,7 @@ class KademliaAgent {
       AppConfig.KADEMLIA.BUCKET_K,
     );
     this.lookUpMemory = {};
+    this.randomNodeLookUpTimeout = undefined;
     setTimeout(this.bootStrap.bind(this), 1000);
   }
   getId() {
@@ -61,7 +63,7 @@ class KademliaAgent {
         this.sendFindNode(sender, targetId, (sender1, { closestRecords }) => {
           const idsInMemory = this.lookUpMemory[targetId.toString()].map(r => r.peerId);
           const newRecordsFound = closestRecords
-            .filter(r => !idsInMemory.includes(r.peerId))
+            .filter(r => !(idsInMemory.includes(r.peerId) || r.peerId === this.selfId))
             .map(r => ({
               ...r,
               visited: false,
@@ -79,6 +81,26 @@ class KademliaAgent {
         });
       });
     });
+  }
+  recursivelyLookUpRandomTarget(avgPeriod) {
+    const receiver = NetworkService.getRandomHost();
+    this.startNodeLookUp(receiver.id);
+    this.randomNodeLookUpTimeout = setTimeout(
+      () => {
+        this.recursivelyLookUpRandomTarget(avgPeriod);
+      },
+      PD.rpois(1, avgPeriod / 1000) * 1000,
+    );
+  }
+  startRandomNodeLookup(avgPeriod) {
+    this.recursivelyLookUpRandomTarget(avgPeriod);
+  }
+  stopRandomNodeLookup() {
+    if (this.randomNodeLookUpTimeout === undefined) {
+      return;
+    }
+    clearTimeout(this.randomNodeLookUpTimeout);
+    this.randomNodeLookUpTimeout = undefined;
   }
   ping(peerIp, callback, failCallback) {
     NetworkService.sendMessage({

@@ -54,7 +54,9 @@ class Peer {
     }
   }
   onReceiveMessage(sender, message) {
-    console.log(colors.cyan(`${`${sender.name}`.padEnd(AppConfig.GENERAL.LOG_PAD_VERY_SHORT)} --> ${`${this.name}`.padEnd(AppConfig.GENERAL.LOG_PAD_VERY_SHORT)}: ${JSON.stringify(message)}`));
+    if (AppConfig.GENERAL.PRINT_CONN_LOG) {
+      console.log(colors.cyan(`${`${sender.name}`.padEnd(AppConfig.GENERAL.LOG_PAD_VERY_SHORT)} --> ${`${this.name}`.padEnd(AppConfig.GENERAL.LOG_PAD_VERY_SHORT)}: ${JSON.stringify(message)}`));
+    }
   }
 }
 

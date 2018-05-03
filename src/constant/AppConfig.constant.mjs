@@ -1,6 +1,7 @@
 const SHARD_SIZE = 2000;
 const AppConfig = {
   GENERAL: {
+    PRINT_CONN_LOG: false,
     LOG_PAD: 26,
     LOG_PAD_SHORT: 18,
     LOG_PAD_VERY_SHORT: 5,
@@ -51,14 +52,16 @@ const AppConfig = {
     REPUB_INTERVAL_SK: 12 * 60 * 60,
   },
   FARMER: {
-    TOTAL_NUM: 5,
+    TOTAL_NUM: 50,
     FARMER_CAPACITY: 10000 * SHARD_SIZE,
     REPUB_INTERVAL_FARMER: 30 * 60,
   },
   KADEMLIA: {
-    ID_LENGTH: 5,
+    ID_LENGTH: 6,
     BUCKET_K: 3,
     NODE_LOOKUP_ALPHA: 3,
+    ALLOW_RANDOM_NODE_LOOKUP: true,
+    RANDOM_NODE_LOOKUP_AVG_PERIOD: 3000,
   },
 };
 
