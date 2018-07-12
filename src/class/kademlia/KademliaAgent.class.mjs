@@ -51,6 +51,10 @@ class KademliaAgent {
     });
   }
   startNodeLookUp(targetId) {
+    const { bucketId, position } = this.kBucketList.findPeerRecord(targetId);
+    if (bucketId !== -1 && position !== -1) {
+      return;
+    }
     const closestRecords = this.kBucketList.findClosestRecords(targetId);
     this.lookUpMemory[targetId.toString()] = closestRecords.map(record => ({
       ...record,
@@ -94,7 +98,7 @@ class KademliaAgent {
   }
   recursivelyLookUpRandomTarget(avgPeriod) {
     const receiver = NetworkService.getRandomHost();
-    if (receiver !== undefined) {
+    if (receiver !== undefined && receiver.id !== this.selfId) {
       this.startNodeLookUp(receiver.id);
     }
     this.randomNodeLookUpTimeout = setTimeout(
