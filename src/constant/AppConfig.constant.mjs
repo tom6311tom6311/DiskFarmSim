@@ -1,6 +1,7 @@
 const SHARD_SIZE = 2000;
 const AppConfig = {
   GENERAL: {
+    TURN_ON_SERVER: false,
     SERVER_PORT: 3001,
     CLEAR_LOG: true,
     LOG_DIR: 'log',
@@ -11,7 +12,7 @@ const AppConfig = {
   },
   ANALYTICS: {
     MONITOR_BUCKET_LOAD: {
-      NODES: ['F0', 'F10', 'F20'],
+      NODES: [], // ['F0', 'F10', 'F20'],
       LOG_FILE_PREFIX: 'bucket_load',
     },
   },
@@ -26,7 +27,7 @@ const AppConfig = {
     },
     CHURN_PROB: {
       ON_TO_OFF: {
-        MEAN: 0.1,
+        MEAN: 0,
         STD: 0.000,
       },
       OFF_TO_ON: {
@@ -67,7 +68,7 @@ const AppConfig = {
   },
   KADEMLIA: {
     ID_LENGTH: 9,
-    BUCKET_K: 1,
+    BUCKET_K: 4,
     NODE_LOOKUP_ALPHA: 3,
     ALLOW_RANDOM_NODE_LOOKUP: true,
     RANDOM_NODE_LOOKUP_AVG_PERIOD: 1000,

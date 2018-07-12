@@ -22,7 +22,6 @@ class NetworkService {
     failCallback = () => {},
     connectionId,
   }) {
-    console.log(Object.keys(this.hungConnectionCallbacks).length);
     if (!(fromIp in this.hosts) ||
         !(toIp in this.hosts) ||
         !(this.hosts[fromIp].isOnline) ||

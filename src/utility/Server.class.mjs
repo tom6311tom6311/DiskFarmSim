@@ -5,6 +5,9 @@ import ServerEvents from '../constant/ServerEvents.constant.mjs';
 
 class Server {
   constructor() {
+    if (!AppConfig.GENERAL.TURN_ON_SERVER) {
+      return;
+    }
     console.log('start listen');
     this.app = http.createServer();
     this.io = io.listen(this.app);
@@ -53,6 +56,9 @@ class Server {
   }
 
   emit(eventName, data) {
+    if (!AppConfig.GENERAL.TURN_ON_SERVER) {
+      return;
+    }
     if (this.connected && this.eventQueue.length === 0) {
       this.io.emit(eventName, data);
     } else {
