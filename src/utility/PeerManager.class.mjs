@@ -1,8 +1,10 @@
+import fs from 'fs';
 import colors from 'colors';
 import AppConfig from '../constant/AppConfig.constant.mjs';
 import DataOwner from '../class/peer/DataOwner.class.mjs';
 import ShardKeeper from '../class/peer/ShardKeeper.class.mjs';
 import Farmer from '../class/peer/Farmer.class.mjs';
+import Server from '../utility/Server.class.mjs';
 
 class PeerManager {
   constructor() {
@@ -24,15 +26,41 @@ class PeerManager {
     }
 
     for (let i = 0; i < nFarmer; i += 1) {
-      const name = `F${i.toString()}`;
-      this.farmers[name] = new Farmer(name);
-      if (AppConfig.KADEMLIA.ALLOW_RANDOM_NODE_LOOKUP) {
-        setTimeout(() => {
-          this.farmers[name]
-            .kademliaAgent
-            .startRandomNodeLookup(AppConfig.KADEMLIA.RANDOM_NODE_LOOKUP_AVG_PERIOD);
-        }, 1000);
-      }
+      setTimeout(() => {
+        const name = `F${i.toString()}`;
+        this.farmers[name] = new Farmer(name);
+        if (AppConfig.KADEMLIA.ALLOW_RANDOM_NODE_LOOKUP) {
+          setTimeout(() => {
+            this.farmers[name]
+              .kademliaAgent
+              .startRandomNodeLookup(AppConfig.KADEMLIA.RANDOM_NODE_LOOKUP_AVG_PERIOD);
+          }, 1000);
+        }
+        if (AppConfig.ANALYTICS.MONITOR_BUCKET_LOAD.NODES.includes(name)) {
+          const bucketLoadLogPath = `${AppConfig.GENERAL.LOG_DIR}/${AppConfig.ANALYTICS.MONITOR_BUCKET_LOAD.LOG_FILE_PREFIX}_${name}.txt`;
+          let time = 0;
+          setInterval(() => {
+            time += 1;
+            const bucketContent = this.farmers[name].kademliaAgent.kBucketList.getBucketContent();
+            const bucketLoad = bucketContent
+              .map(content => (content.length / AppConfig.KADEMLIA.BUCKET_K));
+            const logInfo = `${time.toString()}: ${bucketLoad}\n`;
+            fs.writeFile(bucketLoadLogPath, logInfo, { flag: 'a+' }, (err) => {
+              if (err) throw err;
+            });
+            if (name === AppConfig.ANALYTICS.MONITOR_BUCKET_LOAD.NODES[0]) {
+              const chartData = {
+                labels: [time.toString()],
+                datasets: bucketLoad.map((load, bucketId) => ({
+                  label: `Bucket #${bucketId}`,
+                  data: [load],
+                })),
+              };
+              Server.updateBucketLoadChart(chartData);
+            }
+          }, 1000);
+        }
+      }, i * 3000, i);
     }
     console.log(colors.green('\n### Initialization Finished ###\n'));
   }

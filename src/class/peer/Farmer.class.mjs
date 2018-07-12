@@ -4,7 +4,7 @@ import KademliaAgent from '../kademlia/KademliaAgent.class.mjs';
 class Farmer extends Peer {
   constructor(name) {
     super(name);
-    this.kademliaAgent = new KademliaAgent(super.getInfo().ip);
+    this.kademliaAgent = new KademliaAgent(super.getInfo().ip, name);
     this.id = this.kademliaAgent.getId();
   }
   printInfo() {

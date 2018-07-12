@@ -27,8 +27,18 @@ class KBucketList {
   }
 
   movePeerRecordToEnd(bucketId, position) {
+    if (bucketId < 0 || position < 0 || this.bucketList[bucketId].length <= position) {
+      return;
+    }
     const bucket = this.bucketList[bucketId];
     this.bucketList[bucketId] = bucket.concat(bucket.splice(position, 1));
+  }
+
+  removePeerRecord(bucketId, position) {
+    if (bucketId < 0 || position < 0 || this.bucketList[bucketId].length <= position) {
+      return;
+    }
+    this.bucketList[bucketId].splice(position, 1);
   }
 
   findPeerRecord(peerId) {

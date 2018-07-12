@@ -4,6 +4,7 @@ import AppUtility from '../../utility/AppUtility.class.mjs';
 import AppConfig from '../../constant/AppConfig.constant.mjs';
 import IpGenerator from '../../utility/IpGenerator.class.mjs';
 import NetworkService from '../../utility/NetworkService.class.mjs';
+import Server from '../../utility/Server.class.mjs';
 
 class Peer {
   constructor(name) {
@@ -51,6 +52,7 @@ class Peer {
     if ((this.isOnline && Math.random() <= this.churnProb.onToOff) ||
         (!this.isOnline && Math.random() <= this.churnProb.offToOn)) {
       this.isOnline = !this.isOnline;
+      Server.topoGraphNodeStatusChanged(this.name, this.isOnline);
     }
   }
   onReceiveMessage(sender, message) {

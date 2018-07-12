@@ -18,36 +18,44 @@ class NetworkService {
     fromIp,
     toIp,
     message,
-    callback,
-    failCallback,
+    callback = () => {},
+    failCallback = () => {},
     connectionId,
   }) {
+    console.log(Object.keys(this.hungConnectionCallbacks).length);
     if (!(fromIp in this.hosts) ||
         !(toIp in this.hosts) ||
         !(this.hosts[fromIp].isOnline) ||
         !(this.hosts[toIp].isOnline)) {
-      console.log('Send message failed');
-      console.log(`${fromIp} ${toIp} ${JSON.stringify(message)}`);
-      if (failCallback !== undefined && typeof failCallback === 'function') {
-        failCallback();
+      // console.log('Send message failed');
+      // console.log(`${fromIp} ${toIp} ${JSON.stringify(message)}`);
+      failCallback();
+      if (connectionId !== undefined) {
+        if (this.hungConnectionCallbacks[connectionId.toString()] !== undefined) {
+          this.hungConnectionCallbacks[connectionId.toString()].fail();
+          delete this.hungConnectionCallbacks[connectionId.toString()];
+        }
       }
       return;
     }
     if (connectionId !== undefined) {
       if (this.hungConnectionCallbacks[connectionId.toString()] !== undefined) {
-        this.hungConnectionCallbacks[connectionId.toString()](this.hosts[fromIp], message);
+        this.hungConnectionCallbacks[connectionId.toString()].success(this.hosts[fromIp], message);
         delete this.hungConnectionCallbacks[connectionId.toString()];
       }
-      if (callback !== undefined && typeof callback === 'function') {
-        this.hungConnectionCallbacks[connectionId.toString()] = callback;
-      }
+      // this.hungConnectionCallbacks[connectionId.toString()] = {
+      //   success: callback,
+      //   fail: failCallback,
+      // };
       this.hosts[toIp].onReceiveMessage(this.hosts[fromIp], message, connectionId);
-      return;
-    } else if (callback !== undefined && typeof callback === 'function') {
-      this.hungConnectionCallbacks[this.currConnectionId.toString()] = callback;
+    } else {
+      this.hungConnectionCallbacks[this.currConnectionId.toString()] = {
+        success: callback,
+        fail: failCallback,
+      };
+      this.hosts[toIp].onReceiveMessage(this.hosts[fromIp], message, this.currConnectionId);
+      this.currConnectionId += 1;
     }
-    this.hosts[toIp].onReceiveMessage(this.hosts[fromIp], message, this.currConnectionId);
-    this.currConnectionId += 1;
   }
 }
 

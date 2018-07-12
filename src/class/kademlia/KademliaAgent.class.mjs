@@ -5,11 +5,13 @@ import KademliaIdGenerator from '../../utility/KademliaIdGenerator.class.mjs';
 import NetworkService from '../../utility/NetworkService.class.mjs';
 import MessageType from '../../constant/MessageType.constant.mjs';
 import PeerRecord from '../kademlia/PeerRecord.class.mjs';
+import Server from '../../utility/Server.class.mjs';
 
 class KademliaAgent {
-  constructor(selfIp) {
+  constructor(selfIp, selfName) {
     this.selfId = KademliaIdGenerator.generateId();
     this.selfIp = selfIp;
+    this.selfName = selfName;
     this.kBucketList = new KBucketList(
       this.selfId,
       AppConfig.KADEMLIA.ID_LENGTH,
@@ -17,6 +19,8 @@ class KademliaAgent {
     );
     this.lookUpMemory = {};
     this.randomNodeLookUpTimeout = undefined;
+
+    Server.addTopoGraphNode(this.selfName);
     setTimeout(this.bootStrap.bind(this), 1000);
   }
   getId() {
@@ -30,18 +34,20 @@ class KademliaAgent {
     });
   }
   bootStrap() {
-    let bootStrapPeer = NetworkService.getRandomHost();
-    if (bootStrapPeer === undefined) {
+    const bootStrapPeer = NetworkService.getRandomHost();
+    if (bootStrapPeer === undefined || bootStrapPeer.ip === this.selfIp) {
+      setTimeout(() => {
+        this.bootStrap();
+      }, 1000);
       return;
-    }
-    while (bootStrapPeer.ip === this.selfIp) {
-      bootStrapPeer = NetworkService.getRandomHost();
     }
     this.ping(bootStrapPeer.ip, (peer) => {
       this.updatePeerRecord(peer);
       this.startNodeLookUp(this.selfId);
     }, () => {
-      this.bootStrap();
+      setTimeout(() => {
+        this.bootStrap();
+      }, 1000);
     });
   }
   startNodeLookUp(targetId) {
@@ -79,12 +85,18 @@ class KademliaAgent {
             .slice(0, AppConfig.KADEMLIA.BUCKET_K);
           this.nodeLookUp(targetId);
         });
+      }, () => {
+        // Server.deleteTopoGraphEdge(this.selfName, record.name);
+        // const { bucketId, position } = this.kBucketList.findPeerRecord(record.peerId);
+        // this.kBucketList.removePeerRecord(bucketId, position);
       });
     });
   }
   recursivelyLookUpRandomTarget(avgPeriod) {
     const receiver = NetworkService.getRandomHost();
-    this.startNodeLookUp(receiver.id);
+    if (receiver !== undefined) {
+      this.startNodeLookUp(receiver.id);
+    }
     this.randomNodeLookUpTimeout = setTimeout(
       () => {
         this.recursivelyLookUpRandomTarget(avgPeriod);
@@ -126,9 +138,20 @@ class KademliaAgent {
   }
   updatePeerRecord(peer) {
     const { bucketId, position } = this.kBucketList.findPeerRecord(peer.id);
+    const newPeerRecord = new PeerRecord(peer.name, peer.id, peer.ip);
     if (position === -1) {
-      const newPeerRecord = new PeerRecord(peer.name, peer.id, peer.ip);
-      this.kBucketList.appendPeerRecord(bucketId, newPeerRecord, true);
+      if (this.kBucketList.isBucketFull(bucketId)) {
+        this.ping(this.kBucketList.bucketList[bucketId][0].ip, () => {
+          this.kBucketList.movePeerRecordToEnd(bucketId, 0);
+        }, () => {
+          Server.deleteTopoGraphEdge(this.selfName, this.kBucketList.bucketList[bucketId][0].name);
+          this.kBucketList.appendPeerRecord(bucketId, newPeerRecord, true);
+          Server.addTopoGraphEdge(this.selfName, peer.name);
+        });
+      } else {
+        this.kBucketList.appendPeerRecord(bucketId, newPeerRecord, false);
+        Server.addTopoGraphEdge(this.selfName, peer.name);
+      }
     } else {
       this.kBucketList.movePeerRecordToEnd(bucketId, position);
     }
