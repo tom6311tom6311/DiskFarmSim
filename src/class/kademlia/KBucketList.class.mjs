@@ -84,6 +84,16 @@ class KBucketList {
     }
     return closestRecords;
   }
+
+  isAllBucketEmpty() {
+    let ret = true;
+    this.bucketList.forEach((bucket) => {
+      if (bucket.length >= 1) {
+        ret = false;
+      }
+    });
+    return ret;
+  }
 }
 
 export default KBucketList;

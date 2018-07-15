@@ -34,7 +34,7 @@ class PeerManager {
             this.farmers[name]
               .kademliaAgent
               .startRandomNodeLookup(AppConfig.KADEMLIA.RANDOM_NODE_LOOKUP_AVG_PERIOD);
-          }, 1000);
+          }, 3000);
         }
         if (AppConfig.ANALYTICS.MONITOR_BUCKET_LOAD.NODES.includes(name)) {
           const bucketLoadLogPath = `${AppConfig.GENERAL.LOG_DIR}/${AppConfig.ANALYTICS.MONITOR_BUCKET_LOAD.LOG_FILE_PREFIX}_${name}.txt`;
@@ -60,9 +60,11 @@ class PeerManager {
             }
           }, 1000);
         }
-      }, i * 3000, i);
+      }, i * AppConfig.FARMER.INIT_INTERVAL * 1000, i);
     }
-    console.log(colors.green('\n### Initialization Finished ###\n'));
+    setTimeout(() => {
+      console.log(colors.green('\n### Initialization Finished ###\n'));
+    }, nFarmer * AppConfig.FARMER.INIT_INTERVAL * 1000);
   }
 
   listPeerStatus() {

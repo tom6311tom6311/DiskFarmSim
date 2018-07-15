@@ -17,7 +17,8 @@ class KademliaAgent {
       AppConfig.KADEMLIA.ID_LENGTH,
       AppConfig.KADEMLIA.BUCKET_K,
     );
-    this.lookUpMemory = {};
+    this.lookUpMemory = null;
+    this.cleanLookUpMemoryTimeout = undefined;
     this.randomNodeLookUpTimeout = undefined;
 
     Server.addTopoGraphNode(this.selfName);
@@ -51,55 +52,80 @@ class KademliaAgent {
     });
   }
   startNodeLookUp(targetId) {
+    if (this.lookUpMemory !== null) {
+      return;
+    }
     const { bucketId, position } = this.kBucketList.findPeerRecord(targetId);
     if (bucketId !== -1 && position !== -1) {
       return;
     }
     const closestRecords = this.kBucketList.findClosestRecords(targetId);
-    this.lookUpMemory[targetId.toString()] = closestRecords.map(record => ({
+    this.lookUpMemory = closestRecords.map(record => ({
       ...record,
+      visiting: false,
       visited: false,
     }));
+    console.log(`${this.selfId} start to lookup ${targetId}`);
     this.nodeLookUp(targetId);
   }
   nodeLookUp(targetId) {
-    const toVisit = this.lookUpMemory[targetId.toString()]
-      .filter(record => (!record.visited))
+    const toVisit = this.lookUpMemory
+      .filter(record => (!record.visiting))
       .slice(0, AppConfig.KADEMLIA.NODE_LOOKUP_ALPHA);
     toVisit.forEach((record, idx) => {
-      toVisit[idx].visited = true;
-      this.ping(record.ip, (sender) => {
+      // console.log(`${this.selfId} visit ${record.peerId}`);
+      if (record.visiting) {
+        return;
+      }
+      toVisit[idx].visiting = true;
+      this.sendFindNode(record, targetId, (sender, { closestRecords }) => {
         this.updatePeerRecord(sender);
-        this.sendFindNode(sender, targetId, (sender1, { closestRecords }) => {
-          const idsInMemory = this.lookUpMemory[targetId.toString()].map(r => r.peerId);
-          const newRecordsFound = closestRecords
-            .filter(r => !(idsInMemory.includes(r.peerId) || r.peerId === this.selfId))
-            .map(r => ({
-              ...r,
-              visited: false,
-            }));
-          this.lookUpMemory[targetId.toString()] = this.lookUpMemory[targetId.toString()]
-            .concat(newRecordsFound);
-          this.lookUpMemory[targetId.toString()] = this.lookUpMemory[targetId.toString()]
-            .sort((a, b) => {
-              const diff = a.peerId.xor(targetId).sub(b.peerId.xor(targetId));
-              return diff.gt(0) ? 1 : -1;
-            });
-          this.lookUpMemory[targetId.toString()] = this.lookUpMemory[targetId.toString()]
-            .slice(0, AppConfig.KADEMLIA.BUCKET_K);
-          this.nodeLookUp(targetId);
+        const idsInMemory = this.lookUpMemory.map(r => r.peerId);
+        const newRecordsFound = closestRecords
+          .filter(r => !(idsInMemory.includes(r.peerId) || r.peerId === this.selfId))
+          .map(r => ({
+            ...r,
+            visiting: false,
+            visited: false,
+          }));
+        this.lookUpMemory = this.lookUpMemory
+          .concat(newRecordsFound);
+        this.lookUpMemory = this.lookUpMemory
+          .sort((a, b) => {
+            const diff = a.peerId.xor(targetId).sub(b.peerId.xor(targetId));
+            return diff.gt(0) ? 1 : -1;
+          });
+        this.lookUpMemory = this.lookUpMemory
+          .slice(0, AppConfig.KADEMLIA.BUCKET_K);
+        toVisit[idx].visited = true;
+        // console.log(`${this.selfId} receive ${sender.id}`);
+        setTimeout(() => {
+          const notVisited = this.lookUpMemory
+            .filter(r => (!r.visited));
+          if (notVisited.length === 0) {
+            if (this.cleanLookUpMemoryTimeout !== undefined) {
+              clearTimeout(this.cleanLookUpMemoryTimeout);
+            }
+            this.cleanLookUpMemoryTimeout = setTimeout(() => {
+              this.lookUpMemory = null;
+              this.cleanLookUpMemoryTimeout = undefined;
+              // console.log(`${this.selfId} lookup finished ${targetId}`);
+            }, 100);
+          } else {
+            this.nodeLookUp(targetId);
+          }
         });
-      }, () => {
-        // Server.deleteTopoGraphEdge(this.selfName, record.name);
-        // const { bucketId, position } = this.kBucketList.findPeerRecord(record.peerId);
-        // this.kBucketList.removePeerRecord(bucketId, position);
       });
     });
   }
   recursivelyLookUpRandomTarget(avgPeriod) {
-    const receiver = NetworkService.getRandomHost();
-    if (receiver !== undefined && receiver.id !== this.selfId) {
-      this.startNodeLookUp(receiver.id);
+    if (this.kBucketList.isAllBucketEmpty()) {
+      this.bootStrap();
+    } else {
+      const receiver = NetworkService.getRandomHost();
+      if (receiver !== undefined && receiver.id !== this.selfId) {
+        this.startNodeLookUp(receiver.id);
+      }
     }
     this.randomNodeLookUpTimeout = setTimeout(
       () => {
@@ -142,8 +168,8 @@ class KademliaAgent {
   }
   updatePeerRecord(peer) {
     const { bucketId, position } = this.kBucketList.findPeerRecord(peer.id);
-    const newPeerRecord = new PeerRecord(peer.name, peer.id, peer.ip);
     if (position === -1) {
+      const newPeerRecord = new PeerRecord(peer.name, peer.id, peer.ip);
       if (this.kBucketList.isBucketFull(bucketId)) {
         this.ping(this.kBucketList.bucketList[bucketId][0].ip, () => {
           this.kBucketList.movePeerRecordToEnd(bucketId, 0);
