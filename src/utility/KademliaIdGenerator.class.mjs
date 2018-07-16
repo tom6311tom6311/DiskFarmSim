@@ -1,21 +1,20 @@
-import colors from 'colors';
 import BigNum from 'bignum';
 import AppConfig from '../constant/AppConfig.constant.mjs';
 
+const ID_RANGE = new BigNum(2).pow(AppConfig.KADEMLIA.ID_LENGTH);
+
 class KademliaIdGenerator {
   constructor() {
-    this.currentId = new BigNum(0);
-    this.maxId = new BigNum(2).pow(AppConfig.KADEMLIA.ID_LENGTH).sub(1);
+    this.generatedIdStrs = [];
   }
 
   generateId() {
-    if (this.currentId.gt(this.maxId)) {
-      console.error(colors.red('Max num of peers attached!'));
-      return new BigNum(-1);
-    }
-    const selfId = this.currentId;
-    this.currentId = this.currentId.add(1);
-    return selfId;
+    let newId = null;
+    do {
+      newId = BigNum.rand(ID_RANGE);
+    } while (this.generatedIdStrs.includes(newId.toString()));
+    this.generatedIdStrs.push(newId.toString());
+    return newId;
   }
 }
 

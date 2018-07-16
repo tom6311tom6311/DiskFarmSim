@@ -6,11 +6,12 @@
     "start": "node --experimental-modules index.mjs"
   },
   "dependencies": {
-    "bignum": "^0.12.5",
+    "bignum": "^0.13.0",
     "chart.js": "^2.7.2",
     "colors": "^1.2.1",
     "commander": "^2.15.1",
     "fs": "0.0.1-security",
+    "hasha": "^3.0.0",
     "mkdirp": "^0.5.1",
     "probability-distributions": "^0.9.1",
     "promptly": "^3.0.3"

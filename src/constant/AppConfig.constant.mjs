@@ -28,7 +28,7 @@ const AppConfig = {
     },
     CHURN_PROB: {
       ON_TO_OFF: {
-        MEAN: 0,
+        MEAN: 0.1,
         STD: 0.000,
       },
       OFF_TO_ON: {
@@ -51,6 +51,7 @@ const AppConfig = {
       MEAN: 3 * 24 * 60 * 60,
       STD: 20000,
     },
+    FILE_CONTENT_LENGTH: 10,
   },
   SHARD_KEEPER: {
     TOTAL_NUM: 0,
@@ -69,7 +70,7 @@ const AppConfig = {
     INIT_INTERVAL: 200,
   },
   KADEMLIA: {
-    ID_LENGTH: 10,
+    ID_LENGTH: 128,
     BUCKET_K: 20,
     NODE_LOOKUP_ALPHA: 3,
     ALLOW_RANDOM_NODE_LOOKUP: true,

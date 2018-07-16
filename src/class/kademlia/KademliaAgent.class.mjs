@@ -81,9 +81,9 @@ class KademliaAgent {
       toVisit[idx].visiting = true;
       this.sendFindNode(record, targetId, (sender, { closestRecords }) => {
         this.updatePeerRecord(sender);
-        const idsInMemory = this.lookUpMemory.map(r => r.peerId);
+        const idsInMemory = this.lookUpMemory.map(r => r.peerId.toString());
         const newRecordsFound = closestRecords
-          .filter(r => !(idsInMemory.includes(r.peerId) || r.peerId === this.selfId))
+          .filter(r => !(idsInMemory.includes(r.peerId.toString()) || r.peerId.eq(this.selfId)))
           .map(r => ({
             ...r,
             visiting: false,
@@ -124,7 +124,7 @@ class KademliaAgent {
       this.bootStrap();
     } else {
       const receiver = NetworkService.getRandomHost();
-      if (receiver !== undefined && receiver.id !== this.selfId) {
+      if (receiver !== undefined && !(receiver.id.eq(this.selfId))) {
         this.startNodeLookUp(receiver.id);
       }
     }
