@@ -60,7 +60,7 @@ class PeerManager {
             }
           }, 1000);
         }
-      }, i * AppConfig.FARMER.INIT_INTERVAL * 1000, i);
+      }, i * AppConfig.FARMER.INIT_INTERVAL, i);
     }
     setTimeout(() => {
       console.log(colors.green('\n### Initialization Finished ###\n'));

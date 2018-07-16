@@ -20,6 +20,7 @@ class KademliaAgent {
     this.lookUpMemory = null;
     this.cleanLookUpMemoryTimeout = undefined;
     this.randomNodeLookUpTimeout = undefined;
+    this.isQueryingLeastRecentNode = false;
 
     Server.addTopoGraphNode(this.selfName);
     setTimeout(this.bootStrap.bind(this), 1000);
@@ -65,7 +66,7 @@ class KademliaAgent {
       visiting: false,
       visited: false,
     }));
-    console.log(`${this.selfId} start to lookup ${targetId}`);
+    // console.log(`${this.selfId} start to lookup ${targetId}`);
     this.nodeLookUp(targetId);
   }
   nodeLookUp(targetId) {
@@ -110,7 +111,7 @@ class KademliaAgent {
               this.lookUpMemory = null;
               this.cleanLookUpMemoryTimeout = undefined;
               // console.log(`${this.selfId} lookup finished ${targetId}`);
-            }, 100);
+            }, AppConfig.GENERAL.CLEAR_MEMORY_TIMEOUT);
           } else {
             this.nodeLookUp(targetId);
           }
@@ -167,12 +168,17 @@ class KademliaAgent {
     });
   }
   updatePeerRecord(peer) {
+    if (this.isQueryingLeastRecentNode) {
+      return;
+    }
     const { bucketId, position } = this.kBucketList.findPeerRecord(peer.id);
     if (position === -1) {
       const newPeerRecord = new PeerRecord(peer.name, peer.id, peer.ip);
       if (this.kBucketList.isBucketFull(bucketId)) {
+        this.isQueryingLeastRecentNode = true;
         this.ping(this.kBucketList.bucketList[bucketId][0].ip, () => {
           this.kBucketList.movePeerRecordToEnd(bucketId, 0);
+          this.isQueryingLeastRecentNode = false;
         }, () => {
           Server.deleteTopoGraphEdge(this.selfName, this.kBucketList.bucketList[bucketId][0].name);
           this.kBucketList.appendPeerRecord(bucketId, newPeerRecord, true);
