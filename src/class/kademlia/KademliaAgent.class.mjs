@@ -81,6 +81,9 @@ class KademliaAgent {
       toVisit[idx].visiting = true;
       this.sendFindNode(record, targetId, (sender, { closestRecords }) => {
         this.updatePeerRecord(sender);
+        if (this.lookUpMemory === null) {
+          return;
+        }
         const idsInMemory = this.lookUpMemory.map(r => r.peerId.toString());
         const newRecordsFound = closestRecords
           .filter(r => !(idsInMemory.includes(r.peerId.toString()) || r.peerId.eq(this.selfId)))
@@ -101,23 +104,27 @@ class KademliaAgent {
         toVisit[idx].visited = true;
         // console.log(`${this.selfId} receive ${sender.id}`);
         setTimeout(() => {
-          const notVisited = this.lookUpMemory
-            .filter(r => (!r.visited));
-          if (notVisited.length === 0) {
-            if (this.cleanLookUpMemoryTimeout !== undefined) {
-              clearTimeout(this.cleanLookUpMemoryTimeout);
-            }
-            this.cleanLookUpMemoryTimeout = setTimeout(() => {
-              this.lookUpMemory = null;
-              this.cleanLookUpMemoryTimeout = undefined;
-              // console.log(`${this.selfId} lookup finished ${targetId}`);
-            }, AppConfig.GENERAL.CLEAR_MEMORY_TIMEOUT);
+          const notVisiting = this.lookUpMemory
+            .filter(r => (!r.visiting));
+          if (notVisiting.length === 0) {
+            this.fireLookUpMemoryCleaner();
           } else {
             this.nodeLookUp(targetId);
           }
         });
       });
     });
+    this.fireLookUpMemoryCleaner();
+  }
+  fireLookUpMemoryCleaner() {
+    if (this.cleanLookUpMemoryTimeout !== undefined) {
+      clearTimeout(this.cleanLookUpMemoryTimeout);
+    }
+    this.cleanLookUpMemoryTimeout = setTimeout(() => {
+      this.lookUpMemory = null;
+      this.cleanLookUpMemoryTimeout = undefined;
+      // console.log(`${this.selfId} lookup finished ${targetId}`);
+    }, AppConfig.GENERAL.CLEAR_MEMORY_TIMEOUT);
   }
   recursivelyLookUpRandomTarget(avgPeriod) {
     if (this.kBucketList.isAllBucketEmpty()) {
