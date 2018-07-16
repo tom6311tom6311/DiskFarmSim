@@ -1,4 +1,4 @@
-const SHARD_SIZE = 2000;
+const SHARD_SIZE = 1024; // bytes, i.e. length of the content string
 const AppConfig = {
   GENERAL: {
     TURN_ON_SERVER: false,
@@ -38,20 +38,17 @@ const AppConfig = {
     },
   },
   DATA_OWNER: {
-    TOTAL_NUM: 0,
-    FILE_TO_UPLOAD_OCCUR_RATE: {
-      MEAN: 0.2,
-      STD: 0.1,
+    TOTAL_NUM: 10,
+    NUM_OWNED_FILES: {
+      MEAN: 10,
+      STD: 0.000,
     },
-    FILE_TO_UPLOAD_SIZE: {
-      MEAN: 100 * SHARD_SIZE,
-      STD: 20 * SHARD_SIZE,
+    FILE_OCCUR_AVG_PERIOD: 3 * 1000,
+    FILE_RETRIEVE_AVG_PERIOD: 20 * 1000,
+    FILE_SIZE: {
+      MEAN: 1 * SHARD_SIZE,
+      STD: 0 * SHARD_SIZE,
     },
-    FILE_LEFT_ONLINE_PERIOD: {
-      MEAN: 3 * 24 * 60 * 60,
-      STD: 20000,
-    },
-    FILE_CONTENT_LENGTH: 10,
   },
   SHARD_KEEPER: {
     TOTAL_NUM: 0,
@@ -64,7 +61,7 @@ const AppConfig = {
     REPUB_INTERVAL_SK: 12 * 60 * 60,
   },
   FARMER: {
-    TOTAL_NUM: 100,
+    TOTAL_NUM: 0,
     FARMER_CAPACITY: 10000 * SHARD_SIZE,
     REPUB_INTERVAL_FARMER: 30 * 60,
     INIT_INTERVAL: 200,
@@ -74,7 +71,7 @@ const AppConfig = {
     BUCKET_K: 5,
     NODE_LOOKUP_ALPHA: 2,
     ALLOW_RANDOM_NODE_LOOKUP: true,
-    RANDOM_NODE_LOOKUP_AVG_PERIOD: 30000,
+    RANDOM_NODE_LOOKUP_AVG_PERIOD: 30 * 1000,
   },
 };
 
