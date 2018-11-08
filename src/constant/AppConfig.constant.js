@@ -1,5 +1,6 @@
 const SHARD_SIZE = 1024; // bytes, i.e. length of the content string
 const AppConfig = {
+  POLICY: 'VANILLA_KADEMLIA',
   GENERAL: {
     TURN_ON_SERVER: false,
     SERVER_PORT: 3001,
@@ -9,7 +10,6 @@ const AppConfig = {
     LOG_PAD: 26,
     LOG_PAD_SHORT: 18,
     LOG_PAD_VERY_SHORT: 5,
-    CLEAN_MEMORY_TIMEOUT: 500,
   },
   ANALYTICS: {
     MONITOR_BUCKET_LOAD: {
@@ -28,7 +28,7 @@ const AppConfig = {
     },
     CHURN_PROB: {
       ON_TO_OFF: {
-        MEAN: 0.1,
+        MEAN: 0,
         STD: 0.000,
       },
       OFF_TO_ON: {
@@ -61,10 +61,9 @@ const AppConfig = {
     REPUB_INTERVAL_SK: 12 * 60 * 60,
   },
   FARMER: {
-    TOTAL_NUM: 0,
-    FARMER_CAPACITY: 10000 * SHARD_SIZE,
+    TOTAL_NUM: 20,
+    CAPACITY: 5,
     REPUB_INTERVAL_FARMER: 30 * 60,
-    INIT_INTERVAL: 200,
   },
   KADEMLIA: {
     ID_LENGTH: 10,
@@ -72,6 +71,9 @@ const AppConfig = {
     NODE_LOOKUP_ALPHA: 2,
     ALLOW_RANDOM_NODE_LOOKUP: true,
     RANDOM_NODE_LOOKUP_AVG_PERIOD: 30 * 1000,
+    CLEAN_MEMORY_TIMEOUT: 500,
+    KEEP_VALUE_TIMEOUT: 5 * 60 * 1000,
+    INIT_INTERVAL: 200,
   },
 };
 

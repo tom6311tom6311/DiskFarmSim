@@ -1,5 +1,5 @@
 import BigNum from 'bignum';
-import AppConfig from '../constant/AppConfig.constant.mjs';
+import AppConfig from '../constant/AppConfig.constant';
 
 const ID_RANGE = new BigNum(2).pow(AppConfig.KADEMLIA.ID_LENGTH);
 

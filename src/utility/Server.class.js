@@ -1,7 +1,7 @@
 import http from 'http';
 import io from 'socket.io';
-import AppConfig from '../constant/AppConfig.constant.mjs';
-import ServerEvents from '../constant/ServerEvents.constant.mjs';
+import AppConfig from '../constant/AppConfig.constant';
+import ServerEvents from '../constant/ServerEvents.constant';
 
 class Server {
   constructor() {

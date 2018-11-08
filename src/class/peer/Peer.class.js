@@ -1,10 +1,10 @@
 import PD from 'probability-distributions';
 import colors from 'colors';
-import AppUtility from '../../utility/AppUtility.class.mjs';
-import AppConfig from '../../constant/AppConfig.constant.mjs';
-import IpGenerator from '../../utility/IpGenerator.class.mjs';
-import NetworkService from '../../utility/NetworkService.class.mjs';
-import Server from '../../utility/Server.class.mjs';
+import AppUtility from '../../utility/AppUtility.class';
+import AppConfig from '../../constant/AppConfig.constant';
+import IpGenerator from '../../utility/IpGenerator.class';
+import NetworkService from '../../utility/NetworkService.class';
+import Server from '../../utility/Server.class';
 
 class Peer {
   constructor(name) {
@@ -28,6 +28,7 @@ class Peer {
     NetworkService.registerHost(this);
     setInterval(this.churn.bind(this), 1000);
   }
+
   getInfo() {
     return {
       name: this.name,
@@ -38,6 +39,7 @@ class Peer {
       churnProb: this.churnProb,
     };
   }
+
   printInfo() {
     console.log(colors.green('\n\n###   Peer Info   ###'));
     console.log(`${'Name'.padEnd(AppConfig.GENERAL.LOG_PAD)}: ${this.name}`);
@@ -48,13 +50,15 @@ class Peer {
     console.log(`${'  On-to-off'.padEnd(AppConfig.GENERAL.LOG_PAD)}: ${AppUtility.toFixedDecimal(this.churnProb.onToOff)}`);
     console.log(`${'  Off-to-on'.padEnd(AppConfig.GENERAL.LOG_PAD)}: ${AppUtility.toFixedDecimal(this.churnProb.offToOn)}`);
   }
+
   churn() {
-    if ((this.isOnline && Math.random() <= this.churnProb.onToOff) ||
-        (!this.isOnline && Math.random() <= this.churnProb.offToOn)) {
+    if ((this.isOnline && Math.random() <= this.churnProb.onToOff)
+    || (!this.isOnline && Math.random() <= this.churnProb.offToOn)) {
       this.isOnline = !this.isOnline;
       Server.topoGraphNodeStatusChanged(this.name, this.isOnline);
     }
   }
+
   onReceiveMessage(sender, message) {
     if (AppConfig.GENERAL.PRINT_CONN_LOG) {
       console.log(colors.cyan(`${`${sender.name}`.padEnd(AppConfig.GENERAL.LOG_PAD_VERY_SHORT)} --> ${`${this.name}`.padEnd(AppConfig.GENERAL.LOG_PAD_VERY_SHORT)}: ${JSON.stringify(message)}`));

@@ -1,10 +1,10 @@
 import fs from 'fs';
 import colors from 'colors';
-import AppConfig from '../constant/AppConfig.constant.mjs';
-import DataOwner from '../class/peer/DataOwner.class.mjs';
-import ShardKeeper from '../class/peer/ShardKeeper.class.mjs';
-import Farmer from '../class/peer/Farmer.class.mjs';
-import Server from '../utility/Server.class.mjs';
+import AppConfig from '../constant/AppConfig.constant';
+import DataOwner from '../class/peer/DataOwner.class';
+import ShardKeeper from '../class/peer/ShardKeeper.class';
+import Farmer from '../class/peer/Farmer.class';
+import Server from './Server.class';
 
 class PeerManager {
   constructor() {
@@ -15,10 +15,6 @@ class PeerManager {
 
   initPeers(nDataOwner, nShardKeeper, nFarmer) {
     console.log(colors.green('\n\n### Initializatiing Peers ###\n'));
-    for (let i = 0; i < nDataOwner; i += 1) {
-      const name = `DO${i.toString()}`;
-      this.dataOwners[name] = new DataOwner(name);
-    }
 
     for (let i = 0; i < nShardKeeper; i += 1) {
       const name = `SK${i.toString()}`;
@@ -60,11 +56,28 @@ class PeerManager {
             }
           }, 1000);
         }
-      }, i * AppConfig.FARMER.INIT_INTERVAL, i);
+      }, i * AppConfig.KADEMLIA.INIT_INTERVAL, i);
+    }
+
+    if (AppConfig.POLICY === 'VANILLA_KADEMLIA') {
+      for (let i = 0; i < nDataOwner; i += 1) {
+        setTimeout(() => {
+          const name = `DO${i.toString()}`;
+          this.dataOwners[name] = new DataOwner(name);
+        }, (i + nFarmer) * AppConfig.KADEMLIA.INIT_INTERVAL, i);
+      }
+      setTimeout(() => {
+        console.log(colors.green('\n### Data Owner Initialization Finished ###\n'));
+      }, (nFarmer + nDataOwner) * AppConfig.KADEMLIA.INIT_INTERVAL * 1000);
+    } else {
+      for (let i = 0; i < nDataOwner; i += 1) {
+        const name = `DO${i.toString()}`;
+        this.dataOwners[name] = new DataOwner(name);
+      }
     }
     setTimeout(() => {
-      console.log(colors.green('\n### Initialization Finished ###\n'));
-    }, nFarmer * AppConfig.FARMER.INIT_INTERVAL * 1000);
+      console.log(colors.green('\n### Farmer Initialization Finished ###\n'));
+    }, nFarmer * AppConfig.KADEMLIA.INIT_INTERVAL * 1000);
   }
 
   listPeerStatus() {

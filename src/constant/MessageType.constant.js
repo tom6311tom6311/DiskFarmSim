@@ -3,6 +3,9 @@ const MessageType = {
   RESP_PING: 'RESP_PING',
   FIND_NODE: 'FIND_NODE',
   RESP_FIND_NODE: 'RESP_FIND_NODE',
+  STORE: 'STORE',
+  FIND_VALUE: 'FIND_VALUE',
+  RESP_FIND_VALUE: 'RESP_FIND_VALUE',
 };
 
 export default MessageType;

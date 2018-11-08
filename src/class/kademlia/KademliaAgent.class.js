@@ -1,17 +1,20 @@
 import PD from 'probability-distributions';
-import AppConfig from '../../constant/AppConfig.constant.mjs';
-import KBucketList from '../kademlia/KBucketList.class.mjs';
-import KademliaIdGenerator from '../../utility/KademliaIdGenerator.class.mjs';
-import NetworkService from '../../utility/NetworkService.class.mjs';
-import MessageType from '../../constant/MessageType.constant.mjs';
-import PeerRecord from '../kademlia/PeerRecord.class.mjs';
-import Server from '../../utility/Server.class.mjs';
+import BigNum from 'bignum';
+import AppConfig from '../../constant/AppConfig.constant';
+import KBucketList from './KBucketList.class';
+import KademliaIdGenerator from '../../utility/KademliaIdGenerator.class';
+import NetworkService from '../../utility/NetworkService.class';
+import MessageType from '../../constant/MessageType.constant';
+import PeerRecord from './PeerRecord.class';
+import Server from '../../utility/Server.class';
 
 class KademliaAgent {
-  constructor(selfIp, selfName) {
+  constructor(selfIp, selfName, capacity) {
     this.selfId = KademliaIdGenerator.generateId();
     this.selfIp = selfIp;
     this.selfName = selfName;
+    this.capacity = capacity;
+    this.storage = [];
     this.kBucketList = new KBucketList(
       this.selfId,
       AppConfig.KADEMLIA.ID_LENGTH,
@@ -21,13 +24,16 @@ class KademliaAgent {
     this.cleanLookUpMemoryTimeout = undefined;
     this.randomNodeLookUpTimeout = undefined;
     this.isQueryingLeastRecentNode = false;
+    this.downloadingHashes = [];
 
     Server.addTopoGraphNode(this.selfName);
     setTimeout(this.bootStrap.bind(this), 1000);
   }
+
   getId() {
     return this.selfId;
   }
+
   printInfo() {
     console.log(`${'Kademlia ID'.padEnd(AppConfig.GENERAL.LOG_PAD)}: #${this.selfId.toString().padStart(AppConfig.KADEMLIA.ID_LENGTH, '0')}`);
     console.log('Bucket Content');
@@ -35,6 +41,7 @@ class KademliaAgent {
       console.log(`${`  Bucket #${idx.toString().padStart(3, '0')}`.padEnd(AppConfig.GENERAL.LOG_PAD)}: ${bucket}`);
     });
   }
+
   bootStrap() {
     const bootStrapPeer = NetworkService.getRandomHost();
     if (bootStrapPeer === undefined || bootStrapPeer.ip === this.selfIp) {
@@ -52,14 +59,15 @@ class KademliaAgent {
       }, 1000);
     });
   }
-  startNodeLookUp(targetId) {
+
+  startNodeLookUp(targetId, callback = () => {}) {
     if (this.lookUpMemory !== null) {
-      return;
+      return false;
     }
-    const { bucketId, position } = this.kBucketList.findPeerRecord(targetId);
-    if (bucketId !== -1 && position !== -1) {
-      return;
-    }
+    // const { bucketId, position } = this.kBucketList.findPeerRecord(targetId);
+    // if (bucketId !== -1 && position !== -1) {
+    //   return false;
+    // }
     const closestRecords = this.kBucketList.findClosestRecords(targetId);
     this.lookUpMemory = closestRecords.map(record => ({
       ...record,
@@ -67,9 +75,11 @@ class KademliaAgent {
       visited: false,
     }));
     // console.log(`${this.selfId} start to lookup ${targetId}`);
-    this.nodeLookUp(targetId);
+    this.nodeLookUp(targetId, callback);
+    return true;
   }
-  nodeLookUp(targetId) {
+
+  nodeLookUp(targetId, callback) {
     const toVisit = this.lookUpMemory
       .filter(record => (!record.visiting))
       .slice(0, AppConfig.KADEMLIA.NODE_LOOKUP_ALPHA);
@@ -107,16 +117,17 @@ class KademliaAgent {
           const notVisiting = this.lookUpMemory
             .filter(r => (!r.visiting));
           if (notVisiting.length === 0) {
-            this.fireLookUpMemoryCleaner();
+            this.fireLookUpMemoryCleaner(callback);
           } else {
-            this.nodeLookUp(targetId);
+            this.nodeLookUp(targetId, callback);
           }
         });
       });
     });
-    this.fireLookUpMemoryCleaner();
+    this.fireLookUpMemoryCleaner(callback);
   }
-  fireLookUpMemoryCleaner() {
+
+  fireLookUpMemoryCleaner(callback) {
     if (this.cleanLookUpMemoryTimeout !== undefined) {
       clearTimeout(this.cleanLookUpMemoryTimeout);
     }
@@ -124,8 +135,10 @@ class KademliaAgent {
       this.lookUpMemory = null;
       this.cleanLookUpMemoryTimeout = undefined;
       // console.log(`${this.selfId} lookup finished ${targetId}`);
-    }, AppConfig.GENERAL.CLEAR_MEMORY_TIMEOUT);
+      callback();
+    }, AppConfig.KADEMLIA.CLEAN_MEMORY_TIMEOUT);
   }
+
   recursivelyLookUpRandomTarget(avgPeriod) {
     if (this.kBucketList.isAllBucketEmpty()) {
       this.bootStrap();
@@ -142,9 +155,11 @@ class KademliaAgent {
       PD.rpois(1, avgPeriod / 1000) * 1000,
     );
   }
+
   startRandomNodeLookup(avgPeriod) {
     this.recursivelyLookUpRandomTarget(avgPeriod);
   }
+
   stopRandomNodeLookup() {
     if (this.randomNodeLookUpTimeout === undefined) {
       return;
@@ -152,6 +167,7 @@ class KademliaAgent {
     clearTimeout(this.randomNodeLookUpTimeout);
     this.randomNodeLookUpTimeout = undefined;
   }
+
   ping(peerIp, callback, failCallback) {
     NetworkService.sendMessage({
       fromIp: this.selfIp,
@@ -163,6 +179,7 @@ class KademliaAgent {
       failCallback,
     });
   }
+
   responsePing(peer, connectionId) {
     this.updatePeerRecord(peer);
     NetworkService.sendMessage({
@@ -174,6 +191,7 @@ class KademliaAgent {
       connectionId,
     });
   }
+
   updatePeerRecord(peer) {
     if (this.isQueryingLeastRecentNode) {
       return;
@@ -199,9 +217,90 @@ class KademliaAgent {
       this.kBucketList.movePeerRecordToEnd(bucketId, position);
     }
   }
-  // store() {
 
-  // }
+  upload(binHash, content) {
+    const callback = () => {
+      const binHashNum = new BigNum(parseInt(binHash, 2));
+      const closestRecords = this.kBucketList.findClosestRecords(binHashNum);
+      closestRecords.forEach((record) => {
+        this.sendStore(record, binHashNum, content);
+      });
+    };
+    const success = this.startNodeLookUp(new BigNum(parseInt(binHash, 2)), callback);
+    if (!success) {
+      setTimeout(() => {
+        this.upload(binHash, content);
+      }, 100);
+    }
+  }
+
+  download(binHash, callback = () => {}) {
+    const idx = this.downloadingHashes.findIndex(h => h === binHash);
+    if (idx !== -1) {
+      console.log('already finding');
+      return;
+    }
+    const lookupCallback = () => {
+      const binHashNum = new BigNum(parseInt(binHash, 2));
+      const closestRecords = this.kBucketList.findClosestRecords(binHashNum);
+      // console.log(closestRecords);
+      if (closestRecords.length === 0) {
+        callback(undefined);
+        return;
+      }
+      closestRecords.forEach((record) => {
+        this.sendFindValue(record, binHashNum, (sender, { value }) => {
+          const downloadingIdx = this.downloadingHashes.findIndex(h => h === binHash);
+          if (value !== undefined && downloadingIdx !== -1) {
+            callback(value);
+            this.downloadingHashes.splice(downloadingIdx, 1);
+          }
+        });
+      });
+    };
+    const success = this.startNodeLookUp(new BigNum(parseInt(binHash, 2)), lookupCallback);
+    if (!success) {
+      console.log('keep trying...');
+      setTimeout(() => {
+        this.download(binHash, callback);
+      }, 100);
+    } else {
+      this.downloadingHashes.push(binHash);
+    }
+  }
+
+  sendStore(peer, binHashNum, content) {
+    NetworkService.sendMessage({
+      fromIp: this.selfIp,
+      toIp: peer.ip,
+      message: {
+        type: MessageType.STORE,
+        binHashNum,
+        content,
+      },
+    });
+  }
+
+  store(binHashNum, content) {
+    const timeNow = Date.now();
+    this.storage = this.storage
+      .filter(e => (timeNow - e.timeLastUpdate < AppConfig.KADEMLIA.KEEP_VALUE_TIMEOUT));
+    const idx = this.storage.findIndex(e => (e.binHashNum.eq(binHashNum)));
+    if (idx !== -1) {
+      this.storage[idx] = {
+        ...this.storage[idx],
+        content,
+        timeLastUpdate: timeNow,
+      };
+    } else if (this.storage.length < this.capacity) {
+      this.storage.push({
+        binHashNum,
+        content,
+        timeLastUpdate: timeNow,
+      });
+    }
+  }
+
   sendFindNode(peer, idToFind, callback, failCallback) {
     NetworkService.sendMessage({
       fromIp: this.selfIp,
@@ -214,6 +313,7 @@ class KademliaAgent {
       failCallback,
     });
   }
+
   responseFindNode(peer, idToFind, connectionId) {
     const closestRecords = this.kBucketList.findClosestRecords(idToFind);
     NetworkService.sendMessage({
@@ -226,9 +326,46 @@ class KademliaAgent {
       connectionId,
     });
   }
-  // findValue() {
 
-  // }
+  sendFindValue(peer, binHashNum, callback, failCallback) {
+    NetworkService.sendMessage({
+      fromIp: this.selfIp,
+      toIp: peer.ip,
+      message: {
+        type: MessageType.FIND_VALUE,
+        binHashNum,
+      },
+      callback,
+      failCallback,
+    });
+  }
+
+  responseFindValue(peer, binHashNum, connectionId) {
+    const idx = this.storage.findIndex(e => (e.binHashNum.eq(binHashNum)));
+    if (idx !== -1) {
+      NetworkService.sendMessage({
+        fromIp: this.selfIp,
+        toIp: peer.ip,
+        message: {
+          type: MessageType.RESP_FIND_VALUE,
+          value: this.storage[idx].content,
+        },
+        connectionId,
+      });
+    } else {
+      const closestRecords = this.kBucketList.findClosestRecords(binHashNum);
+      NetworkService.sendMessage({
+        fromIp: this.selfIp,
+        toIp: peer.ip,
+        message: {
+          type: MessageType.RESP_FIND_VALUE,
+          closestRecords,
+        },
+        connectionId,
+      });
+    }
+  }
+
   onReceiveMessage(sender, message, connectionId) {
     switch (message.type) {
       case MessageType.PING:
@@ -236,6 +373,12 @@ class KademliaAgent {
         break;
       case MessageType.FIND_NODE:
         this.responseFindNode(sender, message.idToFind, connectionId);
+        break;
+      case MessageType.STORE:
+        this.store(message.binHashNum, message.content);
+        break;
+      case MessageType.FIND_VALUE:
+        this.responseFindValue(sender, message.binHashNum, connectionId);
         break;
       default:
         break;

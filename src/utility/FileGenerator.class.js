@@ -1,6 +1,6 @@
 import hasha from 'hasha';
 import randomstring from 'randomstring';
-import AppConfig from '../constant/AppConfig.constant.mjs';
+import AppConfig from '../constant/AppConfig.constant';
 
 class FileGenerator {
   static generateFile(size) {

@@ -1,5 +1,5 @@
-import CommandType from '../constant/CommandType.constant.mjs';
-import PeerManager from './PeerManager.class.mjs';
+import CommandType from '../constant/CommandType.constant';
+import PeerManager from './PeerManager.class';
 
 class CommandManager {
   static parse(commandStr) {
@@ -25,6 +25,7 @@ class CommandManager {
     });
     CommandManager.exec(command[0], argv, param);
   }
+
   static exec(cmd, argv, param) {
     switch (cmd) {
       case CommandType.LIST_PEERS:
